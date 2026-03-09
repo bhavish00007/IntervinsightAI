@@ -1,8 +1,10 @@
-function QuestionCard({ question, questionCount }) {
+function QuestionCard({ question, questionCount, totalQuestions }) {
   return (
-    <div>
-      <h3>Question {questionCount}</h3>
-      <p>{question}</p>
+    <div className="question-card">
+      <div className="question-counter">
+        Question {questionCount} of {totalQuestions}
+      </div>
+      <h3>{question}</h3>
     </div>
   );
 }
