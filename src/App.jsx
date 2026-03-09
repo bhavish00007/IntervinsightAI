@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import Dashboard from "./pages/Dashboard";
 import InterviewPage from "./pages/InterviewPage";
+import LiveInterviewPage from "./pages/LiveInterviewPage";
 import "./App.css";
 
 function ProtectedRoute({ children }) {
@@ -76,6 +77,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <InterviewPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/live-interview"
+            element={
+              <ProtectedRoute>
+                <LiveInterviewPage />
               </ProtectedRoute>
             }
           />
