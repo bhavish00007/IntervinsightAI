@@ -1,5 +1,5 @@
 function Feedback({ feedback }) {
-  const { score, strength, improvement } = feedback;
+  const { score, skill, strength, improvement, verdict } = feedback;
 
   const getScoreClass = (s) => {
     if (s >= 8) return "score-high";
@@ -14,9 +14,9 @@ function Feedback({ feedback }) {
           {score}/10
         </div>
         <div>
-          <div className="feedback-score-label">Performance Score</div>
+          {skill && <div className="feedback-skill-tag">{skill}</div>}
           <div className="feedback-score-value">
-            {score >= 8 ? "Great job!" : score >= 5 ? "Decent effort" : "Keep practicing"}
+            {score >= 8 ? "Strong answer" : score >= 5 ? "Decent answer" : "Needs work"}
           </div>
         </div>
       </div>
@@ -30,8 +30,15 @@ function Feedback({ feedback }) {
 
       {improvement && (
         <div className="feedback-section">
-          <div className="feedback-section-label improvement">Improvement</div>
+          <div className="feedback-section-label improvement">Area for Improvement</div>
           <p>{improvement}</p>
+        </div>
+      )}
+
+      {verdict && (
+        <div className="feedback-section">
+          <div className="feedback-section-label verdict">Interviewer Verdict</div>
+          <p>{verdict}</p>
         </div>
       )}
     </div>

@@ -28,5 +28,6 @@ export const signupUser = (data) => authAPI.post("/signup", data);
 // Interview
 export const generateQuestion = (data) => interviewAPI.post("/generate", data);
 export const submitAnswer = (data) => interviewAPI.post("/generate", data);
+export const getSkillReport = (data) => interviewAPI.post("/skill-report", data);
 export const saveInterview = (data) => interviewAPI.post("/saveInterview", data);
 export const getHistory = () => interviewAPI.get("/history");

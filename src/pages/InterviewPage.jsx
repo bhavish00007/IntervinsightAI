@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import useInterview from "../hooks/useInterview";
 import Interview from "../components/Interview";
 import Feedback from "../components/Feedback";
+import SkillReport from "../components/SkillReport";
 import Navbar from "../components/Navbar";
 
 function InterviewPage() {
@@ -22,6 +23,8 @@ function InterviewPage() {
     totalQuestions,
     averageScore,
     performanceLevel,
+    skillReport,
+    reportLoading,
     startInterview,
     submitAnswer,
     nextQuestion,
@@ -59,7 +62,7 @@ function InterviewPage() {
             <div className="report-header">
               <h2>Interview Complete</h2>
               <p style={{ color: "var(--text-secondary)" }}>
-                Here's how you performed as a {role}
+                {role} — AI Skill Analysis
               </p>
               <div
                 className="report-final-score"
@@ -72,17 +75,37 @@ function InterviewPage() {
               </span>
             </div>
 
-            {questions.map((q, i) => (
-              <div className="report-qa" key={i}>
-                <div className="report-qa-question">
-                  Q{i + 1}: {q}
+            {/* AI Skill Report */}
+            {reportLoading ? (
+              <div className="loading-container">
+                <div style={{ textAlign: "center" }}>
+                  <div className="spinner spinner-dark spinner-lg" style={{ margin: "0 auto 12px" }}></div>
+                  <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+                    Analyzing your skills...
+                  </p>
                 </div>
-                <div className="report-qa-answer">{answers[i]}</div>
-                {feedbacks[i] && (
-                  <Feedback feedback={feedbacks[i]} />
-                )}
               </div>
-            ))}
+            ) : skillReport ? (
+              <SkillReport report={skillReport} />
+            ) : null}
+
+            {/* Q&A Review */}
+            <div style={{ marginTop: "32px" }}>
+              <h3 style={{ fontSize: "1.125rem", fontWeight: 600, marginBottom: "16px" }}>
+                Question-by-Question Review
+              </h3>
+              {questions.map((q, i) => (
+                <div className="report-qa" key={i}>
+                  <div className="report-qa-question">
+                    Q{i + 1}: {q}
+                  </div>
+                  <div className="report-qa-answer">{answers[i]}</div>
+                  {feedbacks[i] && (
+                    <Feedback feedback={feedbacks[i]} />
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className="report-actions">
               <button
@@ -95,7 +118,7 @@ function InterviewPage() {
                 className="btn btn-outline btn-lg"
                 onClick={() => startInterview(role)}
               >
-                Try Again
+                Retake Interview
               </button>
             </div>
           </div>
@@ -110,7 +133,7 @@ function InterviewPage() {
       <div className="page-container">
         <div className="interview-header">
           <h1>{role} Interview</h1>
-          <p>Answer each question thoughtfully. You'll get feedback after each response.</p>
+          <p>Answer each question thoughtfully. The AI adapts questions based on your responses.</p>
         </div>
 
         <div className="progress-bar-container">
@@ -119,7 +142,12 @@ function InterviewPage() {
 
         {loading && !questions[currentQuestion] ? (
           <div className="loading-container">
-            <div className="spinner spinner-dark spinner-lg"></div>
+            <div style={{ textAlign: "center" }}>
+              <div className="spinner spinner-dark spinner-lg" style={{ margin: "0 auto 12px" }}></div>
+              <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
+                Preparing your question...
+              </p>
+            </div>
           </div>
         ) : questions[currentQuestion] ? (
           <Interview

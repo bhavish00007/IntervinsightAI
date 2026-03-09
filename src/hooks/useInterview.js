@@ -1,17 +1,26 @@
 import { useState } from "react";
-import { generateQuestion, submitAnswer as submitAnswerAPI, saveInterview } from "../services/api";
+import {
+  generateQuestion,
+  submitAnswer as submitAnswerAPI,
+  getSkillReport as getSkillReportAPI,
+  saveInterview,
+} from "../services/api";
 
-const TOTAL_QUESTIONS = 3;
+const TOTAL_QUESTIONS = 5;
 
 const parseFeedback = (raw) => {
   const scoreMatch = raw.match(/Score:\s*(\d+)\s*\/\s*10/i);
+  const skillMatch = raw.match(/Skill:\s*(.*?)(?:\n|$)/i);
   const strengthMatch = raw.match(/Strength:\s*([\s\S]*?)(?=Improvement:|$)/i);
-  const improvementMatch = raw.match(/Improvement:\s*([\s\S]*?)$/i);
+  const improvementMatch = raw.match(/Improvement:\s*([\s\S]*?)(?=Verdict:|$)/i);
+  const verdictMatch = raw.match(/Verdict:\s*([\s\S]*?)$/i);
 
   return {
     score: scoreMatch ? parseInt(scoreMatch[1]) : 0,
+    skill: skillMatch ? skillMatch[1].trim() : "",
     strength: strengthMatch ? strengthMatch[1].trim() : "",
     improvement: improvementMatch ? improvementMatch[1].trim() : "",
+    verdict: verdictMatch ? verdictMatch[1].trim() : "",
     raw,
   };
 };
@@ -22,11 +31,14 @@ const useInterview = () => {
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [feedbacks, setFeedbacks] = useState([]);
+  const [rawFeedbacks, setRawFeedbacks] = useState([]);
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState(null);
   const [finished, setFinished] = useState(false);
   const [started, setStarted] = useState(false);
+  const [skillReport, setSkillReport] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const startInterview = async (selectedRole) => {
     setRole(selectedRole);
@@ -34,14 +46,21 @@ const useInterview = () => {
     setQuestions([]);
     setAnswers([]);
     setFeedbacks([]);
+    setRawFeedbacks([]);
     setScores([]);
     setCurrentFeedback(null);
     setFinished(false);
     setLoading(true);
     setStarted(true);
+    setSkillReport(null);
 
     try {
-      const res = await generateQuestion({ role: selectedRole });
+      const res = await generateQuestion({
+        role: selectedRole,
+        questionNumber: 1,
+        previousQuestions: [],
+        previousAnswers: [],
+      });
       setQuestions([res.data.question]);
       setCurrentQuestion(0);
     } catch (err) {
@@ -56,15 +75,23 @@ const useInterview = () => {
     setCurrentFeedback(null);
 
     try {
-      const res = await submitAnswerAPI({ role, answer });
+      const res = await submitAnswerAPI({
+        role,
+        question: questions[currentQuestion],
+        answer,
+        questionNumber: currentQuestion + 1,
+      });
+
       const parsed = parseFeedback(res.data.feedback);
 
       const newAnswers = [...answers, answer];
       const newFeedbacks = [...feedbacks, parsed];
+      const newRawFeedbacks = [...rawFeedbacks, res.data.feedback];
       const newScores = [...scores, parsed.score];
 
       setAnswers(newAnswers);
       setFeedbacks(newFeedbacks);
+      setRawFeedbacks(newRawFeedbacks);
       setScores(newScores);
       setCurrentFeedback(parsed);
     } catch (err) {
@@ -84,7 +111,12 @@ const useInterview = () => {
     setCurrentFeedback(null);
 
     try {
-      const res = await generateQuestion({ role });
+      const res = await generateQuestion({
+        role,
+        questionNumber: currentQuestion + 2,
+        previousQuestions: questions,
+        previousAnswers: answers,
+      });
       setQuestions((prev) => [...prev, res.data.question]);
       setCurrentQuestion((prev) => prev + 1);
     } catch (err) {
@@ -98,13 +130,32 @@ const useInterview = () => {
     const total = scores.reduce((a, b) => a + b, 0);
     const avg = scores.length > 0 ? total / scores.length : 0;
 
-    try {
-      await saveInterview({ role, score: avg });
-    } catch (err) {
-      console.error("Failed to save interview:", err);
-    }
-
     setFinished(true);
+    setReportLoading(true);
+
+    try {
+      // Get AI skill report
+      const reportRes = await getSkillReportAPI({
+        role,
+        questions,
+        answers,
+        feedbacks: rawFeedbacks,
+      });
+      setSkillReport(reportRes.data.report);
+
+      // Save interview with report
+      await saveInterview({
+        role,
+        score: avg,
+        skillReport: reportRes.data.report,
+      });
+    } catch (err) {
+      console.error("Failed to generate report:", err);
+      // Save without report
+      await saveInterview({ role, score: avg }).catch(() => {});
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const getPerformanceLevel = (avg) => {
@@ -132,6 +183,8 @@ const useInterview = () => {
     totalQuestions: TOTAL_QUESTIONS,
     averageScore,
     performanceLevel: getPerformanceLevel(parseFloat(averageScore)),
+    skillReport,
+    reportLoading,
     startInterview,
     submitAnswer,
     nextQuestion,
